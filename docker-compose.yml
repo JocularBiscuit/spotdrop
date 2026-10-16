@@ -1,0 +1,12 @@
+services:
+  spotdrop:
+    build: .
+    image: spotdrop
+    ports:
+      - "127.0.0.1:5280:5280"   # drop the 127.0.0.1: prefix to expose on your network (set SPOTDROP_PASSWORD then!)
+    volumes:
+      - ./data-docker:/data
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - SPOTDROP_PASSWORD=${SPOTDROP_PASSWORD:-}
+    restart: unless-stopped

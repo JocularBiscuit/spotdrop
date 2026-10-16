@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="referrer" content="no-referrer" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Spotdrop" />
+<meta name="theme-color" content="#faf6f0" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#14110f" media="(prefers-color-scheme: dark)" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon.svg" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<title>Spotdrop</title>
+<style>
+  :root { --paper:#faf6f0; --card:#fff; --ink:#1d1a17; --muted:#7a7068; --line:#ebe3d8; --accent:#ff5a36; --soft:#ffe7df; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root { --paper:#14110f; --card:#1f1b18; --ink:#f4eee7; --muted:#a39a91; --line:#322c27; --accent:#ff6d4d; --soft:#3a1f17; color-scheme: dark; } }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif; }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  .hidden { display: none !important; }
+  /* lock screen */
+  #lock { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; padding: 32px 24px; gap: 14px; max-width: 420px; margin: 0 auto; }
+  #lock h1 { font: 700 30px/1.1 Georgia, serif; margin: 0; }
+  #lock p { color: var(--muted); margin: 0; }
+  .input { width: 100%; border: 1px solid var(--line); background: var(--card); color: var(--ink); -webkit-text-fill-color: var(--ink); border-radius: 14px; padding: 12px 14px; outline: none; font-size: 16px; }
+  .input:focus { border-color: var(--accent); }
+  .btn { border: 0; background: var(--accent); color: #fff; font-weight: 600; border-radius: 14px; padding: 13px; }
+  .err { color: #e5484d; font-size: 14px; min-height: 20px; }
+  /* header */
+  header { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--paper) 90%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); padding: calc(env(safe-area-inset-top) + 8px) 12px 8px; border-bottom: 1px solid var(--line); }
+  .top { display: flex; align-items: center; gap: 8px; }
+  .logo { font: 700 21px Georgia, serif; }
+  .search { flex: 1; min-width: 0; padding: 9px 12px; }
+  .cancel { border: 0; background: none; color: var(--accent); font-weight: 600; padding: 8px 2px 8px 4px; }
+  .x { position: sticky; top: 0; float: right; margin: -2px -6px 0 0; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--line); color: var(--ink); font-size: 16px; z-index: 1; }
+  .tools { display: flex; gap: 6px; padding-top: 8px; }
+  .tool { flex: 1; min-height: 38px; border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 7px 8px; font-size: 13.5px; font-weight: 600; white-space: nowrap; }
+  .tool.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .tool .badge { background: var(--accent); color: #fff; border-radius: 999px; padding: 0 6px; margin-left: 4px; font-size: 11px; }
+  .chips { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 2px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex-shrink: 0; min-height: 34px; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 12px; font-size: 13px; white-space: nowrap; }
+  .chip.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .chip.small { min-height: 34px; padding: 5px 11px; font-size: 13px; }
+  .chip.accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+  /* list */
+  main { padding: 10px 12px calc(env(safe-area-inset-bottom) + 84px); }
+  .section-title { font: 600 18px Georgia, serif; margin: 14px 4px 8px; }
+  .count { color: var(--muted); font-size: 12.5px; margin: 2px 4px 8px; }
+  .item { display: flex; gap: 12px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px; margin-bottom: 8px; width: 100%; text-align: left; }
+  .thumb { width: 56px; height: 56px; border-radius: 12px; flex-shrink: 0; object-fit: cover; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .name { font-weight: 650; font-size: 15.5px; line-height: 1.25; }
+  .sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  .mini { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .mini span { background: color-mix(in srgb, var(--line) 70%, transparent); border-radius: 6px; padding: 1px 6px; font-size: 11.5px; }
+  .date { color: var(--accent); font-weight: 600; font-size: 12.5px; margin-top: 3px; }
+  .flames { color: var(--accent); font-size: 12px; white-space: nowrap; margin-left: auto; padding-left: 6px; }
+  .dist { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; font-size: 12px; margin-top: 3px; color: var(--muted); }
+  .open { color: #16a34a; font-weight: 600; }
+  .price { font-weight: 600; color: var(--ink); opacity: .75; }
+  .hours { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 13.5px; margin: 4px 0; }
+  .hours span:nth-child(odd) { color: var(--muted); }
+  .empty { text-align: center; color: var(--muted); padding: 48px 12px; }
+  /* map */
+  #mapWrap { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 58px); z-index: 2; }
+  #map { width: 100%; height: 100%; }
+  .maplibregl-popup-content { background: var(--card); color: var(--ink); border-radius: 12px; padding: 8px 10px; }
+  .maplibregl-popup-tip { border-top-color: var(--card) !important; border-bottom-color: var(--card) !important; }
+  .mapbar { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; gap: 6px; z-index: 3; pointer-events: none; }
+  .mapbar > * { pointer-events: auto; }
+  .styles { margin-left: auto; display: flex; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 2px; }
+  .styles button { border: 0; background: none; padding: 5px 9px; font-size: 12px; border-radius: 9px; }
+  .styles button.on { background: var(--ink); color: var(--paper); }
+  /* bottom nav */
+  nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: color-mix(in srgb, var(--card) 94%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--line); padding: 6px 4px calc(env(safe-area-inset-bottom) + 6px); z-index: 6; }
+  nav button { flex: 1; border: 0; background: none; padding: 5px 0; font-size: 11px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  nav button b { font-size: 20px; font-weight: normal; }
+  nav button.on { color: var(--accent); }
+  /* sheets */
+  .sheet { position: fixed; inset: 0; z-index: 10; background: rgb(0 0 0 / .4); display: flex; align-items: flex-end; }
+  .sheet .panel { touch-action: pan-y; background: var(--paper); width: 100%; max-height: 88dvh; overflow-y: auto; border-radius: 22px 22px 0 0; padding: 10px 18px calc(env(safe-area-inset-bottom) + 20px); animation: up .2s ease-out; }
+  @keyframes up { from { transform: translateY(40px); opacity: .5; } }
+  .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 12px; }
+  .panel h2 { font: 700 24px/1.15 Georgia, serif; margin: 6px 0 4px; }
+  .panel img.big { width: 100%; border-radius: 14px; margin: 8px 0; max-height: 260px; object-fit: cover; }
+  .quote { border-left: 3px solid var(--accent); padding-left: 10px; margin: 10px 0; }
+  .quote small { color: var(--muted); }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .actions a { text-decoration: none; border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 9px 13px; font-weight: 600; font-size: 14px; color: var(--ink); }
+  .actions a.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; margin-top: 16px; margin-bottom: 6px; }
+  .wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sheetbar { position: sticky; bottom: 0; display: flex; gap: 8px; padding-top: 14px; background: var(--paper); }
+  .sheetbar .btn { flex: 1; }
+  .ghost { border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 13px 16px; font-weight: 600; }
+  .foot { text-align: center; color: var(--muted); font-size: 12px; margin-top: 18px; }
+  .foot button { border: 0; background: none; color: var(--accent); font-size: 12px; }
+</style>
+</head>
+<body>
+<!-- Unlock -->
+<section id="lock">
+  <h1>📍 Spotdrop</h1>
+  <p>Your library, read-only. Enter your passphrase; it's only used on this phone to decrypt your data.</p>
+  <input id="pass" class="input" type="password" autocomplete="current-password" placeholder="Passphrase" />
+  <button id="unlock" class="btn">Unlock</button>
+  <div id="err" class="err"></div>
+</section>
+
+<!-- App -->
+<div id="app" class="hidden">
+  <header>
+    <div class="top">
+      <span class="logo">Spotdrop</span>
+      <input id="q" class="input search" type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Search…" />
+      <button id="qCancel" class="cancel hidden">Cancel</button>
+    </div>
+    <div class="tools">
+      <button id="filterBtn" class="tool">⚙︎ Filter</button>
+      <button id="nearBtn" class="tool">📍 Near me</button>
+      <button id="viewBtn" class="tool">🗺 Map</button>
+    </div>
+    <div id="chips" class="chips"></div>
+    <div id="dates" class="chips hidden"></div>
+  </header>
+  <main id="list"></main>
+  <div id="mapWrap" class="hidden">
+    <div class="mapbar">
+      <span id="mapCount" class="chip small"></span>
+      <div class="styles"><button data-style="detailed">Detailed</button><button data-style="night">Night</button></div>
+    </div>
+    <div id="map"></div>
+  </div>
+  <nav>
+    <button data-tab="library" class="on"><b>📚</b>Library</button>
+    <button data-tab="home"><b>📍</b><span id="homeLabel">Munich</span></button>
+    <button data-tab="upcoming"><b>📅</b>Upcoming</button>
+    <button data-tab="discover"><b>🔭</b>Discover</button>
+    <button data-tab="saved"><b>🔖</b>Saved</button>
+  </nav>
+</div>
+<div id="sheet" class="sheet hidden"><div class="panel" id="panel"></div></div>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const KEY_STORE = "spotdrop.key";
+let DATA = null;
+const S = { tab: "library", cat: "all", topic: "all", view: "list", near: null, mapStyle: localStorage.getItem("spotdrop.mapstyle") || "detailed" };
+try { Object.assign(S, JSON.parse(sessionStorage.getItem("spotdrop.view") || "{}")); } catch {}
+const remember = () => { try { sessionStorage.setItem("spotdrop.view", JSON.stringify({ tab: S.tab, cat: S.cat, topic: S.topic, view: S.view })); } catch {} };
+const F = { venues: [], meals: [], cuisines: [], drinks: [], service: [], areas: [], types: [], tags: [], genres: [], minRating: 0 };
+let D = { preset: "any" }; // date filter for Upcoming / Discover
+
+// Date filter (copy of shared/dates.ts)
+const DATE_PRESETS = [["any", "Any time"], ["today", "Today"], ["tomorrow", "Tomorrow"], ["weekend", "This weekend"], ["week", "Next 7 days"], ["month", "Next 30 days"]];
+const localDay = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+const plusDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+function rangeFor(f, now = new Date()) {
+  const t = localDay(now);
+  switch (f.preset) {
+    case "today": return [t, t];
+    case "tomorrow": { const x = localDay(plusDays(now, 1)); return [x, x]; }
+    case "weekend": { const dow = now.getDay(), toFri = dow === 0 ? -2 : 5 - dow; return [toFri < 0 || dow === 5 ? t : localDay(plusDays(now, toFri)), localDay(plusDays(now, dow === 0 ? 0 : 7 - dow))]; }
+    case "week": return [t, localDay(plusDays(now, 6))];
+    case "month": return [t, localDay(plusDays(now, 30))];
+    case "custom": return f.from ? [f.from, f.to && f.to >= f.from ? f.to : f.from] : null;
+    default: return null;
+  }
+}
+function inDates(item) {
+  const r = rangeFor(D);
+  if (!r) return true;
+  return Boolean(item.date_start) && item.date_start <= r[1] && (item.date_end || item.date_start) >= r[0];
+}
+function customLabel() {
+  const r = rangeFor(D); if (D.preset !== "custom" || !r) return "📅 Pick dates";
+  const f = (v) => new Date(v + "T12:00").toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return "📅 " + (r[0] === r[1] ? f(r[0]) : f(r[0]) + " – " + f(r[1]));
+}
+
+// ---------- crypto (AES-256-GCM, key from PBKDF2-SHA256) ----------
+const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+async function deriveKey(pass, env) {
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name: "PBKDF2", hash: "SHA-256", salt: b64(env.salt), iterations: env.iterations }, base, { name: "AES-GCM", length: 256 }, true, ["decrypt"]);
+}
+async function decrypt(key, env) {
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(env.iv) }, key, b64(env.data));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+async function fetchEnvelope() {
+  const r = await fetch("snapshot.json?t=" + Date.now(), { cache: "no-store" });
+  if (!r.ok) throw new Error("Couldn't load the snapshot (" + r.status + ")");
+  return r.json();
+}
+async function rememberKey(key, salt) {
+  const raw = new Uint8Array(await crypto.subtle.exportKey("raw", key));
+  localStorage.setItem(KEY_STORE, JSON.stringify({ salt, key: btoa(String.fromCharCode(...raw)) }));
+}
+async function savedKey(salt) {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY_STORE) || "null");
+    if (!s || s.salt !== salt) return null;
+    return crypto.subtle.importKey("raw", b64(s.key), "AES-GCM", false, ["decrypt"]);
+  } catch { return null; }
+}
+async function start() {
+  try {
+    const env = await fetchEnvelope();
+    const key = await savedKey(env.salt);
+    if (key) { DATA = await decrypt(key, env); return show(); }
+  } catch (e) { $("#err").textContent = e.message; }
+}
+$("#unlock").addEventListener("click", async () => {
+  $("#err").textContent = "Unlocking…";
+  try {
+    const env = await fetchEnvelope();
+    const key = await deriveKey($("#pass").value, env);
+    DATA = await decrypt(key, env);
+    await rememberKey(key, env.salt);
+    $("#pass").value = "";
+    show();
+  } catch (e) { $("#err").textContent = e.name === "OperationError" ? "Wrong passphrase" : e.message; }
+});
+// addEventListener (not onkeydown = …): returning false from an on-handler would swallow every keystroke.
+$("#pass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#unlock").click(); });
+
+// ---------- helpers ----------
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => "&#" + c.charCodeAt(0) + ";");
+const norm = (s) => String(s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss");
+const pretty = (s) => String(s ?? "").replace(/_/g, " ");
+const today = new Date().toISOString().slice(0, 10);
+const catOf = (id) => DATA.categories.find((c) => c.id === id) || { emoji: "📦", name: "", color: "#78716c", template: "generic" };
+const fmtDate = (d) => {
+  if (!d.date_start) return "";
+  const f = (v) => new Date(v + "T12:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+  return (d.date_end && d.date_end !== d.date_start ? f(d.date_start) + " – " + f(d.date_end) : f(d.date_start)) + (d.time ? " · " + d.time : "");
+};
+const flames = (n) => (n ? "🔥".repeat(n) : "");
+const isHome = (s) => ["munich", "munchen"].includes(norm(s.city)) || norm(s.city) === norm(DATA.home_city) || (s.lat && Math.abs(s.lat - 48.137) < 0.2 && Math.abs(s.lng - 11.575) < 0.3);
+const mapsLink = (s) => s.maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([s.name || s.title, s.address || s.venue, s.city || "München"].filter(Boolean).join(", "))}`;
+const km = (a, b) => { const r = Math.PI / 180, x = (b.lng - a.lng) * r * Math.cos(((a.lat + b.lat) / 2) * r); return Math.hypot(x, (b.lat - a.lat) * r) * 6371; };
+const fmtKm = (d) => (d < 1 ? Math.round(d * 1000 / 10) * 10 + " m" : d.toFixed(1) + " km");
+const VENUE = { restaurant: "🍽️ Restaurant", fine_dining: "✨ Fine dining", cafe: "☕ Café", bakery: "🥖 Bakery", bar: "🍸 Bar", wine_bar: "🍷 Wine bar", pub: "🍺 Pub", street_food: "🌯 Street food", food_truck: "🚚 Food truck", market: "🧺 Market", ice_cream: "🍦 Ice cream", rooftop: "🌇 Rooftop" };
+const MEAL = { breakfast: "🥐 Breakfast", brunch: "🍳 Brunch", lunch: "🥗 Lunch", dinner: "🍝 Dinner", snack: "🥨 Snack", dessert: "🍰 Dessert", late_night: "🌙 Late night" };
+const SERVICE = { dine_in: "🪑 Sit down", takeaway: "🥡 To go", delivery: "🛵 Delivery" };
+
+// Opening hours (copy of shared/hours.ts): 7 strings Mon..Sun, "12:00-22:00", "closed", "" = unknown.
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const PRICE = ["Free", "$", "$$", "$$$", "$$$$"];
+const mins = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+const ranges = (day) => !day || day === "closed" ? [] : day.split(/,\s*/).map((r) => { const [a, b] = r.split("-").map(mins); return [a, b <= a ? b + 1440 : b]; });
+const hhmm = (m) => String(Math.floor(m / 60) % 24).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+function openState(hours, at = new Date()) {
+  if (!hours || hours.length !== 7) return null;
+  const today = (at.getDay() + 6) % 7, now = at.getHours() * 60 + at.getMinutes();
+  for (const [, b] of ranges(hours[(today + 6) % 7])) if (b > 1440 && now < b - 1440) return { open: true, text: "Open · until " + hhmm(b) };
+  for (const [a, b] of ranges(hours[today])) if (now >= a && now < b) return { open: true, text: "Open · until " + hhmm(b) };
+  for (const [a] of ranges(hours[today])) if (a > now) return { open: false, text: "Closed · opens " + hhmm(a) };
+  for (let i = 1; i <= 7; i++) { const d = (today + i) % 7, f = ranges(hours[d])[0]; if (f) return { open: false, text: "Closed · opens " + (i === 1 ? "tomorrow" : DAYS[d]) + " " + hhmm(f[0]) }; }
+  return null;
+}
+function weekLines(hours) {
+  const out = [];
+  for (let i = 0; i < 7; ) { let j = i; while (j + 1 < 7 && hours[j + 1] === hours[i]) j++; out.push([i === j ? DAYS[i] : DAYS[i] + "–" + DAYS[j], hours[i] === "closed" ? "closed" : (hours[i] || "?").replace(/-/g, "–")]); i = j + 1; }
+  return out;
+}
+const located = (s) => ["food", "place"].includes(catOf(s.category).template) && s.kind !== "food";
+
+function matches(s, q) {
+  if (!q) return true;
+  const hay = norm([s.name, s.title, s.description, s.official, s.city, s.neighborhood, s.address, s.type, s.venue, s.why, ...(s.cuisines || []), ...(s.dishes || []), ...(s.tags || []), ...(s.venues || []), s.notes].join(" "));
+  return norm(q).split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
+}
+const anyOf = (sel, vals) => !sel.length || sel.some((x) => (vals || []).includes(x));
+const activeFilters = () => F.genres.length + F.venues.length + F.meals.length + F.cuisines.length + F.drinks.length + F.service.length + F.areas.length + F.types.length + F.tags.length + (F.minRating ? 1 : 0);
+
+/** Items for the current tab + category (before sub-filters): used to offer only filters that exist. */
+function scope() {
+  let list = DATA.items.filter((s) => S.cat === "all" || s.category === S.cat);
+  if (S.tab === "home") list = list.filter(isHome);
+  else if (S.tab === "saved") list = list.filter((s) => s.saved);
+  else if (S.tab === "upcoming") list = list.filter((s) => s.date_start && (s.date_end || s.date_start) >= today);
+  return list;
+}
+function filtered() {
+  const q = $("#q").value.trim();
+  if (S.tab === "discover") {
+    return DATA.discover.filter((d) => (S.topic === "found" ? d.found : !d.found && (S.topic === "all" || d.topic === S.topic)) && matches(d, q) &&
+      (!F.areas.length || F.areas.includes(d.neighborhood)) && (!F.genres.length || F.genres.some((g) => (d.genres || []).includes(g))) && inDates(d));
+  }
+  let list = scope().filter((s) =>
+    matches(s, q) && anyOf(F.venues, s.venues) && anyOf(F.meals, s.meals) && anyOf(F.cuisines, (s.cuisines || []).map(norm)) &&
+    anyOf(F.drinks, s.drinks) && anyOf(F.service, s.service) && (!F.areas.length || F.areas.includes(s.neighborhood)) &&
+    (!F.types.length || F.types.includes(norm(s.type))) && anyOf(F.tags, (s.tags || []).map(norm)) && (s.rating || 0) >= F.minRating &&
+    (S.tab !== "upcoming" || inDates(s)));
+  if (S.near) list = list.filter((s) => s.lat).sort((a, b) => km(S.near, a) - km(S.near, b));
+  else if (S.tab === "upcoming") list.sort((a, b) => a.date_start.localeCompare(b.date_start));
+  else if (S.tab === "home") list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  else if (!q) list.sort((a, b) => b.created_at.localeCompare(a.created_at));
+  return list;
+}
+
+// ---------- rendering ----------
+function show() {
+  $("#lock").classList.add("hidden");
+  $("#app").classList.remove("hidden");
+  $("#homeLabel").textContent = DATA.home_city || "Home";
+  render();
+}
+function chipsHtml() {
+  if (S.tab === "discover") {
+    const feed = DATA.discover.filter((d) => !d.found);
+    const topics = [...new Set(feed.map((d) => d.topic))].filter((t) => t !== "music");
+    const TOPIC = { music: "🎧 Techno", food: "🍜 Food", thrift: "🧥 Thrift", jewellery: "💍 Jewellery", flea_market: "🧺 Flohmarkt", festival: "🎪 Festivals", event: "🎟️ Events", car_meet: "🏎️ Car meets", unique: "✨ Unique" };
+    const chip = (k, l) => `<button class="chip ${S.topic === k ? "on" : ""}" data-topic="${esc(k)}">${esc(l)}</button>`;
+    return [chip("all", "All"), feed.some((d) => d.topic === "music") ? chip("music", TOPIC.music) : "", DATA.discover.some((d) => d.found) ? chip("found", "🔎 Found places") : "", ...topics.map((t) => chip(t, TOPIC[t] || pretty(t)))].join("");
+  }
+  const used = new Set(DATA.items.map((i) => i.category));
+  return ['<button class="chip ' + (S.cat === "all" ? "on" : "") + '" data-cat="all">Everything</button>', ...DATA.categories.filter((c) => used.has(c.id)).map((c) => `<button class="chip ${S.cat === c.id ? "on" : ""}" data-cat="${c.id}">${c.emoji} ${esc(c.name)}</button>`)].join("");
+}
+function itemHtml(s) {
+  const c = catOf(s.category);
+  const sub = [s.type || VENUE[(s.venues || [])[0]]?.replace(/^\S+ /, ""), (s.cuisines || [])[0], s.neighborhood || s.city].filter(Boolean).join(" · ");
+  const mini = [...(s.meals || []).map((x) => MEAL[x]), ...(s.drinks || []).slice(0, 2).map(pretty), ...(s.service || []).map((x) => SERVICE[x])].filter(Boolean).slice(0, 4).map((x) => `<span>${esc(x)}</span>`).join("");
+  const thumb = s.thumb ? `<img class="thumb" src="${s.thumb}" alt="" loading="lazy" />` : `<span class="thumb" style="background:${c.color}22">${c.emoji}</span>`;
+  const st = located(s) ? openState(s.hours) : null;
+  const meta = [
+    st ? `<span class="${st.open ? "open" : ""}">${st.text}</span>` : "",
+    located(s) && s.price != null ? `<span class="price">${PRICE[s.price]}</span>` : "",
+    S.near && s.lat ? `<span>${fmtKm(km(S.near, s))}</span>` : "",
+  ].filter(Boolean).join("");
+  return `<button class="item" data-id="${s.id}">${thumb}<span style="flex:1;min-width:0"><div style="display:flex;align-items:baseline;gap:6px"><span class="name">${esc(s.name)}</span><span class="flames">${flames(s.rating)}</span></div>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}${s.date_start ? `<div class="date">${fmtDate(s)}</div>` : ""}${meta ? `<div class="meta">${meta}</div>` : ""}${mini ? `<div class="mini">${mini}</div>` : ""}</span></button>`;
+}
+function discoverHtml(d) {
+  const pic = d.image ? `<img class="thumb" src="${d.image}" alt="" loading="lazy" />` : `<span class="thumb" style="background:var(--soft)">🔭</span>`;
+  const g = (d.genres || []).map((x) => `<span>${esc((DATA.genres || {})[x] || pretty(x))}</span>`).join("");
+  return `<button class="item" data-did="${d.id}">${pic}<span style="flex:1;min-width:0"><span class="name">${esc(d.title)}</span>${g ? `<div class="mini">${g}</div>` : ""}${d.collective ? `<div class="sub">by ${esc(d.collective)}</div>` : ""}<div class="sub">${esc([pretty(d.topic), d.neighborhood || d.venue].filter(Boolean).join(" · "))}</div>${d.date_start ? `<div class="date">${fmtDate(d)}</div>` : ""}${d.why ? `<div class="sub" style="font-style:italic">✨ ${esc(d.why)}</div>` : ""}</span></button>`;
+}
+function render() {
+  remember();
+  document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("on", b.dataset.tab === S.tab));
+  $("#chips").innerHTML = chipsHtml();
+  const datesOn = S.tab === "upcoming" || S.tab === "discover";
+  $("#dates").classList.toggle("hidden", !datesOn);
+  if (datesOn) $("#dates").innerHTML = DATE_PRESETS.map(([k, l]) => `<button class="chip small ${D.preset === k ? "accent" : ""}" data-date="${k}">${l}</button>`).join("") +
+    `<button class="chip small ${D.preset === "custom" ? "accent" : ""}" data-pickdates="1">${customLabel()}</button>`;
+  const n = activeFilters();
+  $("#filterBtn").innerHTML = "⚙︎ Filter" + (n ? `<span class="badge">${n}</span>` : "");
+  $("#filterBtn").classList.toggle("on", n > 0);
+  $("#nearBtn").classList.toggle("on", Boolean(S.near));
+  $("#viewBtn").textContent = S.view === "map" ? "☰ List" : "🗺 Map";
+  const list = filtered();
+  if (S.view === "map") { renderMap(list); return; }
+  let html = `<div class="count">${list.length} ${S.tab === "discover" ? "finds" : "places & things"}${S.near ? " · nearest first" : ""}</div>`;
+  if (S.tab === "discover") {
+    const dated = list.filter((d) => d.date_start).sort((a, b) => a.date_start.localeCompare(b.date_start));
+    const places = list.filter((d) => !d.date_start);
+    if (dated.length) html += `<div class="section-title">📅 Coming up</div>` + dated.map(discoverHtml).join("");
+    if (places.length) html += `<div class="section-title">📍 Places</div>` + places.map(discoverHtml).join("");
+  } else html += list.map(itemHtml).join("");
+  if (!list.length) html += `<div class="empty">Nothing here.${activeFilters() ? "<br/>Try removing a filter." : ""}</div>`;
+  html += `<div class="foot">Snapshot from ${new Date(DATA.generated_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })} · updates when you sync from your Mac (📱 button)<br/><button id="lockBtn">Lock on this phone</button></div>`;
+  $("#list").innerHTML = html;
+}
+
+// ---------- filters sheet ----------
+function countBy(list, pick) {
+  const m = new Map();
+  for (const s of list) for (const v of [].concat(pick(s) || [])) if (v) m.set(v, (m.get(v) || 0) + 1);
+  return [...m.entries()].sort((a, b) => b[1] - a[1]);
+}
+function openFilters() {
+  const keep = $("#sheet").classList.contains("hidden") ? 0 : $("#panel").scrollTop; // stay put while toggling chips
+  const list = S.tab === "discover" ? DATA.discover : scope();
+  const tpl = S.cat === "all" ? "all" : catOf(S.cat).template;
+  const group = (label, key, entries, labels) => {
+    if (!entries.length) return "";
+    return `<div class="label">${label}</div><div class="wrap">${entries.map(([v, n]) => `<button class="chip small ${F[key].includes(v) ? "accent" : ""}" data-f="${key}" data-v="${esc(v)}">${esc(labels?.[v] || pretty(v))} <span style="opacity:.6">${n}</span></button>`).join("")}</div>`;
+  };
+  let html = `<div class="grab"></div><button class="x" data-close="1" aria-label="Close">✕</button><h2>Filter</h2>`;
+  if (S.tab !== "discover") {
+    if (tpl === "food" || tpl === "all" || tpl === "recipe") {
+      html += group("When", "meals", countBy(list, (s) => s.meals), MEAL);
+      html += group("Cuisine", "cuisines", countBy(list, (s) => (s.cuisines || []).map(norm)).slice(0, 30));
+      html += group("Drinks", "drinks", countBy(list, (s) => s.drinks));
+      html += group("Sit down or to go", "service", countBy(list, (s) => s.service), SERVICE);
+    }
+    if (tpl !== "food" && tpl !== "all") html += group("Topics", "tags", countBy(list, (s) => (s.tags || []).map(norm)).slice(0, 30));
+    html += `<div class="label">Rating</div><div class="wrap">${[0, 2, 3, 4, 5].map((r) => `<button class="chip small ${F.minRating === r ? "accent" : ""}" data-rating="${r}">${r ? "🔥".repeat(r) + (r < 5 ? "+" : "") : "Any"}</button>`).join("")}</div>`;
+  }
+  if (S.tab === "discover") html += group("Sound", "genres", countBy(list.filter((d) => d.topic === "music"), (d) => d.genres), DATA.genres);
+  html += group("Area", "areas", countBy(list, (s) => s.neighborhood).slice(0, 40));
+  if (S.tab !== "discover") { // types last
+    if (tpl === "food" || tpl === "all" || tpl === "recipe") html += group("Type of place", "venues", countBy(list, (s) => s.venues), VENUE);
+    if (tpl !== "food") html += group("Type", "types", countBy(list, (s) => (s.type ? norm(s.type) : null)).slice(0, 30));
+  }
+  html += `<div class="sheetbar"><button class="ghost" data-clear="1">Clear</button><button class="btn" data-close="1">Show ${filtered().length}</button></div>`;
+  $("#panel").innerHTML = html;
+  openSheet();
+  $("#panel").scrollTop = keep;
+}
+
+// ---------- map (MapLibre, loaded only when needed) ----------
+let MAP = null, mapReady = false, userMarker = null;
+function loadMapLib() {
+  if (window.maplibregl) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const css = document.createElement("link");
+    css.rel = "stylesheet"; css.href = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css";
+    document.head.appendChild(css);
+    const js = document.createElement("script");
+    js.src = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"; js.onload = res; js.onerror = () => rej(new Error("Couldn't load the map"));
+    document.head.appendChild(js);
+  });
+}
+function hsl(c) { // "#rrggbb" → [h,s,l] for the night recolor
+  const m = c.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i); if (!m) return null;
+  let [r, g, b] = m.slice(1).map((x) => parseInt(x, 16) / 255); const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+  let h = 0, s = 0; if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); h = (mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4) * 60; }
+  return [h, s * 100, l * 100];
+}
+function nightColor(v) {
+  if (typeof v === "string") {
+    let c = null;
+    if (v.startsWith("#")) { const x = v.length === 4 ? "#" + [...v.slice(1)].map((ch) => ch + ch).join("") : v; c = hsl(x.slice(0, 7)); }
+    else { const m = v.match(/^hsla?\(([\d.]+),\s*([\d.]+)%,\s*([\d.]+)%(?:,\s*([\d.]+))?\)$/); if (m) c = [+m[1], +m[2], +m[3], m[4]]; }
+    if (!c) return v;
+    return `hsla(${c[0].toFixed(0)}, ${(c[1] * .7).toFixed(0)}%, ${Math.min(90, Math.max(8, 100 - c[2] * .92)).toFixed(0)}%, ${c[3] ?? 1})`;
+  }
+  return Array.isArray(v) ? v.map(nightColor) : v;
+}
+async function styleJson() {
+  const s = await (await fetch("https://tiles.openfreemap.org/styles/liberty")).json();
+  if (S.mapStyle === "night") for (const l of s.layers) for (const k of Object.keys(l.paint || {})) if (k.endsWith("color")) l.paint[k] = nightColor(l.paint[k]);
+  return s;
+}
+// Category badges (copy of web/src/mapBadges.ts): emoji on the category colour, ids encode what to draw.
+const badgeId = (emoji, color, star) => `b|${emoji}|${color}|${star ? 1 : 0}`;
+function drawBadge(emoji, color, star) {
+  const ratio = 2, size = 34 * ratio, r = size / 2;
+  const c = document.createElement("canvas"); c.width = c.height = size;
+  const g = c.getContext("2d");
+  g.shadowColor = "rgba(0,0,0,.28)"; g.shadowBlur = 3 * ratio;
+  g.fillStyle = star ? "#f5a524" : "#ffffff"; g.beginPath(); g.arc(r, r, r - 2 * ratio, 0, Math.PI * 2); g.fill();
+  g.shadowBlur = 0;
+  g.fillStyle = color; g.beginPath(); g.arc(r, r, r - (star ? 5 : 4) * ratio, 0, Math.PI * 2); g.fill();
+  g.font = `${17 * ratio}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+  g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(emoji, r, r + 1.5 * ratio);
+  return g.getImageData(0, 0, size, size);
+}
+async function ensureMap() {
+  $("#mapWrap").style.top = $("header").getBoundingClientRect().bottom + "px";
+  if (MAP) return;
+  await loadMapLib();
+  MAP = new maplibregl.Map({ container: "map", style: await styleJson(), center: [11.5755, 48.1372], zoom: 12.5, attributionControl: { compact: true } });
+  MAP.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+  MAP.on("styleimagemissing", (e) => {
+    const [kind, emoji, color, star] = e.id.split("|");
+    if (kind === "b" && !MAP.hasImage(e.id)) MAP.addImage(e.id, drawBadge(emoji, color, star === "1"), { pixelRatio: 2 });
+  });
+  MAP.on("load", () => {
+    MAP.addSource("pts", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    MAP.addLayer({ id: "pts", type: "symbol", source: "pts", layout: { "icon-image": ["get", "icon"], "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.8, 15, 1], "icon-allow-overlap": true } });
+    MAP.addLayer({ id: "lbl", type: "symbol", source: "pts", minzoom: 12.5, layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Bold"], "text-size": 12, "text-offset": [0, 1.4], "text-anchor": "top", "text-optional": true }, paint: { "text-color": S.mapStyle === "night" ? "#f4eee7" : "#1d1a17", "text-halo-color": S.mapStyle === "night" ? "#14110f" : "#fff", "text-halo-width": 1.5 } });
+    MAP.on("click", "pts", (e) => {
+      const p = e.features[0].properties;
+      if (p.kind === "d") openDiscover(DATA.discover.find((d) => d.id === p.id)); else openItem(DATA.items.find((s) => s.id === p.id));
+    });
+    mapReady = true;
+    renderMap(filtered());
+  });
+}
+async function renderMap(list) {
+  $("#list").innerHTML = "";
+  $("#mapWrap").classList.remove("hidden");
+  try { await ensureMap(); } catch (e) { $("#list").innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+  document.querySelectorAll(".styles button").forEach((b) => b.classList.toggle("on", b.dataset.style === S.mapStyle));
+  const located = list.filter((s) => s.lat != null && s.lng != null);
+  $("#mapCount").textContent = `${located.length} on the map`;
+  if (!mapReady) return;
+  for (const s of located) { const id = badgeId(s.title ? "🔭" : catOf(s.category).emoji, s.title ? "#0891b2" : catOf(s.category).color, !s.title && (s.rating || 0) >= 4); if (!MAP.hasImage(id)) { const [, e, c, st] = id.split("|"); MAP.addImage(id, drawBadge(e, c, st === "1"), { pixelRatio: 2 }); } }
+  MAP.getSource("pts").setData({ type: "FeatureCollection", features: located.map((s) => ({ type: "Feature", geometry: { type: "Point", coordinates: [s.lng, s.lat] }, properties: { id: s.id, kind: s.title ? "d" : "s", name: s.name || s.title, icon: badgeId(s.title ? "🔭" : catOf(s.category).emoji, s.title ? "#0891b2" : catOf(s.category).color, !s.title && (s.rating || 0) >= 4) } })) });
+  // Opens on Munich; only a search reframes (to the matches in Munich if there are any).
+  if (S.near) MAP.flyTo({ center: [S.near.lng, S.near.lat], zoom: 14.5 });
+  else if (located.length && $("#q").value.trim()) {
+    // Frame the home city when most places are there: one far-away save shouldn't zoom out to the whole world.
+    const near = located.filter((s) => Math.abs(s.lat - 48.137) < 0.25 && Math.abs(s.lng - 11.575) < 0.35);
+    const use = near.length ? near : located;
+    const b = new maplibregl.LngLatBounds();
+    for (const s of use) b.extend([s.lng, s.lat]);
+    MAP.fitBounds(b, { padding: 60, maxZoom: 15, duration: 400 });
+  }
+}
+function hideMap() { $("#mapWrap").classList.add("hidden"); }
+
+// ---------- near me ----------
+function toggleNear() {
+  if (S.near) { S.near = null; userMarker?.remove(); return render(); }
+  if (!navigator.geolocation) return alert("Location isn't available on this device.");
+  $("#nearBtn").textContent = "📍 Locating…";
+  navigator.geolocation.getCurrentPosition((p) => {
+    S.near = { lat: p.coords.latitude, lng: p.coords.longitude };
+    $("#nearBtn").textContent = "📍 Near me";
+    if (window.maplibregl && MAP) {
+      const el = document.createElement("div");
+      el.style.cssText = "width:16px;height:16px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 0 6px rgba(59,130,246,.25)";
+      userMarker?.remove(); userMarker = new maplibregl.Marker({ element: el }).setLngLat([S.near.lng, S.near.lat]).addTo(MAP);
+    }
+    render();
+  }, () => { $("#nearBtn").textContent = "📍 Near me"; alert("Couldn't get your location (allow it in Settings → Safari → Location)."); }, { enableHighAccuracy: true, timeout: 10000 });
+}
+
+// ---------- detail sheets ----------
+function openSheet() { $("#panel").scrollTop = 0; $("#sheet").classList.remove("hidden"); $("#q").blur(); }
+function openDates() {
+  const t = localDay(new Date());
+  $("#panel").innerHTML = `<div class="grab"></div><button class="x" data-close="1" aria-label="Close">✕</button><h2>Pick dates</h2>
+    <div class="label">From</div><input id="dFrom" class="input" type="date" value="${D.from || t}" min="${t}" />
+    <div class="label">To (optional, for a range)</div><input id="dTo" class="input" type="date" value="${D.to || ""}" min="${D.from || t}" />
+    <div class="sheetbar"><button class="ghost" data-date="any">Clear</button><button class="btn" data-applydates="1">Show</button></div>`;
+  openSheet();
+}
+function openItem(s) {
+  const c = catOf(s.category);
+  const web = s.website ? (/^https?:/.test(s.website) ? s.website : "https://" + s.website) : null;
+  const chips = [...(s.venues || []).map((v) => VENUE[v] || pretty(v)), ...(s.cuisines || []), ...(s.meals || []).map((m) => MEAL[m] || m), ...(s.drinks || []).map(pretty), ...(s.service || []).map((x) => SERVICE[x] || x)].map((x) => `<span>${esc(x)}</span>`).join("");
+  const dist = S.near && s.lat ? ` · ${fmtKm(km(S.near, s))} away` : "";
+  $("#panel").innerHTML = `<div class="grab"></div><button class="x" data-close="1" aria-label="Close">✕</button>
+    <div class="sub">${c.emoji} ${esc(c.name)}${s.saved ? " · 🔖 saved" : ""}${s.visited ? " · ✓ been there" : ""}</div>
+    <h2>${esc(s.name)}</h2>
+    <div class="sub">${esc([s.type, s.neighborhood, s.city, located(s) && s.price != null ? PRICE[s.price] : null].filter(Boolean).join(" · "))}${dist} <span style="color:var(--accent)">${flames(s.rating)}</span></div>
+    ${s.date_start ? `<div class="date" style="font-size:15px">${fmtDate(s)}</div>` : ""}
+    <div class="actions">${s.lat || s.address ? `<a class="primary" href="${mapsLink(s)}" target="_blank" rel="noreferrer">Google Maps</a>` : ""}${web ? `<a href="${web}" target="_blank" rel="noreferrer">Website</a>` : ""}${s.instagram ? `<a href="https://instagram.com/${esc(s.instagram)}" target="_blank" rel="noreferrer">@${esc(s.instagram)}</a>` : ""}</div>
+    ${located(s) && openState(s.hours) ? `<details style="margin:8px 0"><summary class="${openState(s.hours).open ? "open" : "sub"}" style="font-size:14px">${openState(s.hours).text} <span class="sub">· all hours</span></summary><div class="hours">${weekLines(s.hours).map(([d, h]) => `<span>${d}</span><span>${esc(h)}</span>`).join("")}</div></details>` : ""}
+    ${s.official ? `<div class="quote">${esc(s.official)} <small>· ${esc(s.official_source || "")}</small></div>` : ""}
+    ${s.description ? `<p>${esc(s.description)}</p>` : ""}
+    ${chips ? `<div class="mini">${chips}</div>` : ""}
+    ${(s.dishes || []).length ? `<div class="label">Dishes</div><p style="margin:4px 0">${esc(s.dishes.join(" · "))}</p>` : ""}
+    ${s.notes ? `<div class="label">My notes</div><p style="margin:4px 0">${esc(s.notes)}</p>` : ""}
+    ${s.address ? `<div class="label">Address</div><p style="margin:4px 0">${esc(s.address)}</p>` : ""}
+    ${s.thumb ? `<img class="big" src="${s.thumb}" alt="" />` : ""}`;
+  openSheet();
+}
+function openDiscover(d) {
+  $("#panel").innerHTML = `<div class="grab"></div><button class="x" data-close="1" aria-label="Close">✕</button>
+    ${d.image ? `<img class="big" src="${d.image}" alt="" />` : ""}
+    <div class="sub">🔭 Discover · ${esc(pretty(d.topic))}</div>
+    <h2>${esc(d.title)}</h2>
+    ${d.date_start ? `<div class="date" style="font-size:15px">${fmtDate(d)}</div>` : ""}
+    <div class="sub">${esc([d.venue, d.neighborhood, d.address, d.price].filter(Boolean).join(" · "))}</div>
+    <div class="actions">${d.lat || d.address ? `<a class="primary" href="${mapsLink(d)}" target="_blank" rel="noreferrer">Google Maps</a>` : ""}${d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noreferrer">${esc(d.source || "Source")}</a>` : ""}</div>
+    ${d.description ? `<p>${esc(d.description)}</p>` : ""}
+    ${(d.genres || []).length ? `<div class="mini">${d.genres.map((x) => `<span>${esc((DATA.genres || {})[x] || pretty(x))}</span>`).join("")}</div>` : ""}
+    ${d.collective ? `<p class="sub">Hosted by ${esc(d.collective)}</p>` : ""}
+    ${d.why ? `<p class="sub" style="font-style:italic">✨ ${esc(d.why)}</p>` : ""}`;
+  openSheet();
+}
+
+// ---------- events ----------
+const resetFilters = () => { for (const k of Object.keys(F)) F[k] = Array.isArray(F[k]) ? [] : 0; };
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("button, #sheet");
+  if (!t) return;
+  if (t.id === "sheet") { if (e.target.id === "sheet") $("#sheet").classList.add("hidden"); return; }
+  if (t.dataset.tab) {
+    S.tab = t.dataset.tab; resetFilters(); D = { preset: "any" };
+    document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("on", b === t));
+    window.scrollTo(0, 0);
+    return render();
+  }
+  if (t.dataset.cat) { S.cat = t.dataset.cat; resetFilters(); return render(); }
+  if (t.dataset.topic) { S.topic = t.dataset.topic; return render(); }
+  if (t.dataset.f) { const a = F[t.dataset.f], v = t.dataset.v; const i = a.indexOf(v); i >= 0 ? a.splice(i, 1) : a.push(v); render(); return openFilters(); }
+  if (t.dataset.rating) { F.minRating = +t.dataset.rating; render(); return openFilters(); }
+  if (t.dataset.clear) { resetFilters(); render(); return openFilters(); }
+  if (t.dataset.date) { D = { preset: t.dataset.date }; $("#sheet").classList.add("hidden"); window.scrollTo(0, 0); return render(); }
+  if (t.dataset.pickdates) return openDates();
+  if (t.dataset.applydates) { const from = $("#dFrom").value, to = $("#dTo").value; D = from ? { preset: "custom", from, to: to || undefined } : { preset: "any" }; $("#sheet").classList.add("hidden"); return render(); }
+  if (t.dataset.close) { $("#sheet").classList.add("hidden"); return; }
+  if (t.dataset.style) { S.mapStyle = t.dataset.style; localStorage.setItem("spotdrop.mapstyle", S.mapStyle); MAP?.remove(); MAP = null; mapReady = false; return render(); }
+  if (t.id === "filterBtn") return openFilters();
+  if (t.id === "nearBtn") return toggleNear();
+  if (t.id === "viewBtn") { S.view = S.view === "map" ? "list" : "map"; if (S.view === "list") hideMap(); return render(); }
+  if (t.dataset.id) return openItem(DATA.items.find((s) => s.id === t.dataset.id));
+  if (t.dataset.did) return openDiscover(DATA.discover.find((d) => d.id === t.dataset.did));
+  if (t.id === "lockBtn") { localStorage.removeItem(KEY_STORE); location.reload(); }
+});
+// Search: debounce, "Search"/Enter or scrolling closes the keyboard, Cancel clears.
+let qTimer = 0;
+const syncCancel = () => $("#qCancel").classList.toggle("hidden", document.activeElement !== $("#q") && !$("#q").value);
+$("#q").addEventListener("input", () => { clearTimeout(qTimer); qTimer = setTimeout(() => { render(); window.scrollTo(0, 0); }, 120); syncCancel(); });
+$("#q").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("#q").blur(); } });
+$("#q").addEventListener("focus", syncCancel);
+$("#q").addEventListener("blur", () => setTimeout(syncCancel, 0));
+$("#qCancel").addEventListener("click", () => { $("#q").value = ""; $("#q").blur(); render(); syncCancel(); });
+document.addEventListener("touchmove", (e) => { if (document.activeElement === $("#q") && !e.target.closest("header")) $("#q").blur(); }, { passive: true });
+
+// Swipe a sheet down to close it (only when its content is scrolled to the top, so scrolling still works).
+{
+  const panel = $("#panel");
+  let y0 = null, dy = 0;
+  panel.addEventListener("touchstart", (e) => { y0 = panel.scrollTop <= 0 ? e.touches[0].clientY : null; dy = 0; panel.style.transition = ""; }, { passive: true });
+  panel.addEventListener("touchmove", (e) => {
+    if (y0 == null) return;
+    dy = e.touches[0].clientY - y0;
+    if (dy <= 0) { panel.style.transform = ""; if (panel.scrollTop > 0) y0 = null; return; }
+    e.preventDefault(); // pull the sheet instead of scrolling
+    panel.style.transform = `translateY(${dy}px)`;
+  }, { passive: false });
+  panel.addEventListener("touchend", () => {
+    if (y0 == null) return;
+    y0 = null;
+    panel.style.transition = "transform .18s ease-out";
+    if (dy > 90) {
+      panel.style.transform = "translateY(100%)";
+      setTimeout(() => { $("#sheet").classList.add("hidden"); panel.style.transform = ""; panel.style.transition = ""; }, 180);
+    } else panel.style.transform = "";
+  });
+}
+start();
+</script>
+</body>
+</html>
