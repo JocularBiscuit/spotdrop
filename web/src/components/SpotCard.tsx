@@ -1,7 +1,7 @@
 import { AlertTriangle, AtSign, CalendarDays, Check, Copy, Image as ImageIcon, Loader2, MapPin, RefreshCw, Sparkles } from "lucide-react";
 import { DRINKS, MEALS, PRICE, SERVICE, VENUES } from "../../../shared/vocab.ts";
 import { DRAG_MIME, focusPosition, isProcessing, thumbUrl, type Category, type Spot } from "../api.ts";
-import { cx, Flames, OpenNow, SaveButton } from "./ui.tsx";
+import { cx, Flames, OpenNow, SaveButton, VisitedButton } from "./ui.tsx";
 import { formatDateRange } from "./CalendarView.tsx";
 
 const emoji = (vocab: Record<string, { emoji: string; label: string }>, keys: string[]) =>
@@ -23,10 +23,11 @@ interface Props {
   /** Extra line, e.g. why it needs a look. */
   note?: string;
   onFavorite?: () => void;
+  onVisited?: () => void;
 }
 
 /** Text-first card: screenshots are often not representative, so the card shows what the item *is*. */
-export function SpotCard({ spot, category, showCategory, selected, selecting, dragIds, onOpen, onRetry, onToggleSelect, showImage, note, onFavorite }: Props) {
+export function SpotCard({ spot, category, showCategory, selected, selecting, dragIds, onOpen, onRetry, onToggleSelect, showImage, note, onFavorite, onVisited }: Props) {
   const busy = isProcessing(spot);
   const template = category?.template ?? "generic";
   const located = template === "food" || template === "place";
@@ -155,7 +156,9 @@ export function SpotCard({ spot, category, showCategory, selected, selecting, dr
             {spot.status === "error" && <AlertTriangle size={14} className="text-red-500" aria-label="Error" />}
             {spot.duplicate_of && <Copy size={14} className="text-gold" aria-label="Possible duplicate" />}
             {spot.needs_review && !busy && spot.status !== "error" && <Sparkles size={14} className="text-accent" aria-label="Needs review" />}
-            {spot.visited && <span className="flex items-center text-emerald-600" title="Been there"><Check size={13} strokeWidth={3} /></span>}
+            {located && onVisited ? (
+              <VisitedButton on={spot.visited} onToggle={onVisited} size={13} className={cx(!spot.visited && "opacity-0 group-hover:opacity-100")} />
+            ) : spot.visited && <span className="flex items-center text-emerald-600" title="Been there"><Check size={13} strokeWidth={3} /></span>}
             {located && spot.price != null && <span className="text-xs font-medium text-ink/70">{PRICE[spot.price]}</span>}
             {!!spot.specialness && <span className="text-accent"><Flames value={spot.specialness} size={12} /></span>}
             {!showImage && spot.images.length > 0 && (

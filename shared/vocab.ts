@@ -93,7 +93,8 @@ export interface CategoryDef {
 }
 
 export const BUILTIN_CATEGORIES: CategoryDef[] = [
-  { id: "food", name: "Food", emoji: "🍽️", color: "#ff5a36", template: "food", description: "Restaurants, cafés, bakeries, street food, ice cream, markets, or a specific dish / food post. Places with a real kitchen, even if they also have a bar." },
+  { id: "food", name: "Food", emoji: "🍽️", color: "#ff5a36", template: "food", description: "Restaurants, street food, food trucks, markets and food halls, or a specific dish / food post. Places with a real kitchen, even if they also serve coffee or have a bar." },
+  { id: "cafes", name: "Cafés & Bakeries", emoji: "☕", color: "#a16207", template: "food", description: "Cafés, coffee shops, bakeries, patisseries, ice cream and dessert spots: places you go mainly for coffee, cake, pastries or sweets." },
   { id: "drinks", name: "Bars & Drinks", emoji: "🍸", color: "#9333ea", template: "food", description: "Bars, cocktail bars, wine bars, pubs, breweries, beer gardens, rooftop bars, clubs: places you go mainly to drink." },
   { id: "places", name: "Places & Activities", emoji: "🗺️", color: "#2f9e8f", template: "place", description: "Sights, experiences, hikes, beaches, museums, hotels, viewpoints, events, things to do while travelling." },
   { id: "events", name: "Events & Dates", emoji: "📅", color: "#0891b2", template: "place", description: "Anything happening on a specific date: pop-ups, markets, concerts, festivals, exhibitions, openings, parties, sales, deadlines." },

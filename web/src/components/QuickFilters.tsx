@@ -166,6 +166,13 @@ export function QuickFilters({ spots, categories, filters, setFilters }: {
       {groups.map((g) => (
         <Dropdown key={g.label} group={g} filters={filters} onToggle={(v) => toggle(g, v)} onClear={() => clear(g)} />
       ))}
+      <div className="flex rounded-xl border border-line bg-card p-0.5 text-[13px]" title="Places you've been to">
+        {([["all", "All"], ["yes", "✓ Been there"], ["no", "Not yet"]] as const).map(([v, label]) => (
+          <button key={v} onClick={() => setFilters({ ...filters, visited: v })} className={cx("rounded-lg px-2 py-0.5 font-medium transition", (filters.visited ?? "all") === v ? "bg-ink text-paper" : "text-muted hover:text-ink")}>
+            {label}
+          </button>
+        ))}
+      </div>
       {n > 0 && (
         <button onClick={() => setFilters(clearRefinements(filters))} className="flex items-center gap-1 rounded-xl px-2 py-1.5 text-sm font-medium text-accent hover:bg-accent-soft">
           <X size={14} /> Clear all

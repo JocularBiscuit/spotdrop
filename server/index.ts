@@ -415,7 +415,8 @@ app.post("/api/discover/:id/save", wrap(async (req, res) => {
   if (!d) return void res.status(404).json({ error: "not found" });
   if (d.spot_id && getSpot(String(d.spot_id))) return void res.json(getSpot(String(d.spot_id)));
   const fields = normalizeFields(libraryFieldsFor(d) as Record<string, unknown>, null);
-  const id = createSpot({ ...fields, status: "ready", needs_review: false, researched: true });
+  // Saved from Discover = bookmarked, so it also shows up under 🔖 Saved.
+  const id = createSpot({ ...fields, status: "ready", needs_review: false, researched: true, favorite: true });
   if (fields.lat == null) await maybeGeocode(id);
   markSaved(String(d.id), id);
   res.json(getSpot(id));

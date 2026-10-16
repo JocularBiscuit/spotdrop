@@ -26,6 +26,8 @@ export interface Filters {
   country: string;
   city: string;
   neighborhood: string;
+  /** "Been there" filter. */
+  visited: "all" | "yes" | "no";
   sort: "new" | "special" | "name";
 }
 
@@ -49,6 +51,7 @@ export const EMPTY_FILTERS: Filters = {
   country: "",
   city: "",
   neighborhood: "",
+  visited: "all",
   sort: "new",
 };
 
@@ -66,7 +69,7 @@ export const clearRefinements = (f: Filters): Filters => ({
 
 export const activeFilterCount = (f: Filters) =>
   f.meals.length + f.venues.length + f.drinks.length + f.service.length + f.cuisines.length + f.tags.length + f.platforms.length + f.types.length +
-  (f.foodType !== "all" ? 1 : 0) + (f.minSpecial ? 1 : 0) + (f.country ? 1 : 0) + (f.city ? 1 : 0) + (f.neighborhood ? 1 : 0);
+  (f.foodType !== "all" ? 1 : 0) + (f.visited !== "all" ? 1 : 0) + (f.minSpecial ? 1 : 0) + (f.country ? 1 : 0) + (f.city ? 1 : 0) + (f.neighborhood ? 1 : 0);
 
 const anyOf = (selected: string[], values: string[]) => !selected.length || selected.some((s) => values.includes(s));
 const lc = (s: unknown) => String(s ?? "").toLowerCase();
@@ -213,6 +216,8 @@ export function applyFilters(spots: Spot[], f: Filters, categoryNames?: Map<stri
     if (f.types.length && !f.types.includes(lc(s.activity_type))) return false;
     if (f.platforms.length && !f.platforms.includes(s.platform ?? "")) return false;
     if (f.minSpecial && (s.specialness ?? 0) < f.minSpecial) return false;
+    if (f.visited === "yes" && !s.visited) return false;
+    if (f.visited === "no" && s.visited) return false;
     if (f.country && s.country !== f.country) return false;
     if (f.city && s.city !== f.city) return false;
     if (f.neighborhood && s.neighborhood !== f.neighborhood) return false;

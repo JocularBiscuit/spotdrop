@@ -2,13 +2,13 @@ import { AlertTriangle, CalendarDays, Check, Copy, Loader2, Sparkles } from "luc
 import { DRINKS, MEALS, PRICE, SERVICE, VENUES } from "../../../shared/vocab.ts";
 import { DRAG_MIME, focusPosition, isProcessing, thumbUrl, type Category, type Spot } from "../api.ts";
 import { formatDateRange } from "./CalendarView.tsx";
-import { cx, Flames, OpenNow, SaveButton } from "./ui.tsx";
+import { cx, Flames, OpenNow, SaveButton, VisitedButton } from "./ui.tsx";
 
 const labels = (vocab: Record<string, { emoji: string; label: string }>, keys: string[]) =>
   keys.filter((k) => vocab[k]).map((k) => `${vocab[k].emoji} ${vocab[k].label}`);
 
 /** Compact one-line row for the list layout. */
-export function SpotRow({ spot, category, showCategory, selected, selecting, dragIds, onOpen, onToggleSelect, showImage, note, onFavorite }: {
+export function SpotRow({ spot, category, showCategory, selected, selecting, dragIds, onOpen, onToggleSelect, showImage, note, onFavorite, onVisited }: {
   spot: Spot;
   category: Category | undefined;
   showCategory: boolean;
@@ -20,6 +20,7 @@ export function SpotRow({ spot, category, showCategory, selected, selecting, dra
   showImage?: boolean;
   note?: string;
   onFavorite?: () => void;
+  onVisited?: () => void;
 }) {
   const busy = isProcessing(spot);
   const color = category?.color ?? "#78716c";
@@ -87,7 +88,9 @@ export function SpotRow({ spot, category, showCategory, selected, selecting, dra
         {spot.status === "error" && <AlertTriangle size={14} className="text-red-500" />}
         {spot.duplicate_of && <Copy size={14} className="text-gold" />}
         {spot.needs_review && !busy && <Sparkles size={14} className="text-accent" />}
-        {spot.visited && <Check size={13} strokeWidth={3} className="text-emerald-600" />}
+        {(template === "food" || template === "place") && onVisited ? (
+          <VisitedButton on={spot.visited} onToggle={onVisited} size={13} className={cx(!spot.visited && "opacity-0 group-hover:opacity-100")} />
+        ) : spot.visited && <Check size={13} strokeWidth={3} className="text-emerald-600" />}
         {spot.price != null && (template === "food" || template === "place") && <span className="text-xs font-medium text-ink/70">{PRICE[spot.price]}</span>}
         {!!spot.specialness && <span className="text-accent"><Flames value={spot.specialness} size={11} /></span>}
         {onFavorite && <SaveButton on={spot.favorite} onToggle={onFavorite} size={15} className={cx(!spot.favorite && "opacity-40 group-hover:opacity-100")} />}

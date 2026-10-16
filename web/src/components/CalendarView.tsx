@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { CalendarPlus, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import type { Category, Spot } from "../api.ts";
 import { Button, cx } from "./ui.tsx";
-import { DateFilterBar } from "./DateFilterBar.tsx";
+import { DateSelect } from "./DateFilterBar.tsx";
 import { ANY_DATE, inDateFilter, type DateFilter } from "../../../shared/dates.ts";
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -112,7 +112,7 @@ export function CalendarView({ spots, categories, onOpen }: { spots: Spot[]; cat
 
         <div className="space-y-2">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted">Upcoming</h3>
-          <DateFilterBar value={dates} onChange={setDates} />
+          <DateSelect value={dates} onChange={setDates} />
           {upcoming.length ? upcoming.map((s) => {
             const c = catById.get(s.category);
             return (

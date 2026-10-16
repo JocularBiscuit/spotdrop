@@ -1,6 +1,6 @@
 import { CalendarRange } from "lucide-react";
 import { DATE_PRESETS, localDay, type DateFilter } from "../../../shared/dates.ts";
-import { cx } from "./ui.tsx";
+import { cx, Select } from "./ui.tsx";
 
 /** Any time · Today · Tomorrow · This weekend · Next 7/30 days · pick a day or range. */
 export function DateFilterBar({ value, onChange, className }: { value: DateFilter; onChange: (f: DateFilter) => void; className?: string }) {
@@ -33,5 +33,45 @@ export function DateFilterBar({ value, onChange, className }: { value: DateFilte
         </span>
       )}
     </div>
+  );
+}
+
+/** Compact version: one dropdown (Any time · Today · … · Pick dates…), date inputs appear only for "Pick dates". */
+export function DateSelect({ value, onChange, extra, className }: {
+  value: DateFilter;
+  onChange: (f: DateFilter) => void;
+  /** Extra options (e.g. ["places", "📍 Places, no date"]) reported via onExtra. */
+  extra?: { key: string; label: string; active: boolean; onPick: () => void };
+  className?: string;
+}) {
+  const today = localDay(new Date());
+  const current = extra?.active ? `x:${extra.key}` : value.preset;
+  const dateCls = "rounded-lg border border-line bg-card px-2 py-1 text-xs outline-none focus:border-accent";
+  return (
+    <span className={cx("flex flex-wrap items-center gap-1.5", className)}>
+      <Select
+        value={current}
+        onChange={(v) => {
+          if (extra && v === `x:${extra.key}`) return extra.onPick();
+          if (v === "custom") return onChange({ preset: "custom", from: value.from ?? today, to: value.to });
+          onChange({ preset: v as DateFilter["preset"] });
+        }}
+        options={[
+          ...DATE_PRESETS.map(([k, label]) => ({ value: k, label: k === "any" ? "📅 Any time" : label })),
+          { value: "custom", label: "Pick dates…" },
+          ...(extra ? [{ value: `x:${extra.key}`, label: extra.label }] : []),
+        ]}
+        className="w-40"
+        buttonClassName="py-1 text-[13px] font-medium"
+        ariaLabel="When"
+      />
+      {value.preset === "custom" && !extra?.active && (
+        <span className="flex items-center gap-1 text-xs text-muted">
+          <input type="date" className={dateCls} value={value.from ?? ""} onChange={(e) => onChange({ ...value, from: e.target.value || undefined })} />
+          –
+          <input type="date" className={dateCls} value={value.to ?? ""} min={value.from} onChange={(e) => onChange({ ...value, to: e.target.value || undefined })} />
+        </span>
+      )}
+    </span>
   );
 }

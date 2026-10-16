@@ -162,6 +162,22 @@ export function SaveButton({ on, onToggle, size = 16, className }: { on: boolean
   );
 }
 
+/** "Been there" toggle: green check when visited, faint until hovered otherwise. */
+export function VisitedButton({ on, onToggle, size = 14, className }: { on: boolean; onToggle: () => void; size?: number; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onToggle(); }}
+      aria-pressed={on}
+      aria-label={on ? "Been there (click to undo)" : "Mark as been there"}
+      title={on ? "Been there · click to undo" : "Mark as been there"}
+      className={cx("flex items-center rounded-full p-1 transition hover:scale-110", on ? "text-emerald-600" : "text-muted/60 hover:text-emerald-600", className)}
+    >
+      <Check size={size} strokeWidth={3} />
+    </button>
+  );
+}
+
 export interface SelectOption {
   value: string;
   label: ReactNode;

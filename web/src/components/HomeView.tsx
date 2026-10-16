@@ -4,7 +4,7 @@ import { isProcessing, type Category, type Spot } from "../api.ts";
 import { countBy, type Filters } from "../filters.ts";
 import { formatDateRange } from "./CalendarView.tsx";
 import { SpotCard } from "./SpotCard.tsx";
-import { DateFilterBar } from "./DateFilterBar.tsx";
+import { DateSelect } from "./DateFilterBar.tsx";
 import { ANY_DATE, inDateFilter, type DateFilter } from "../../../shared/dates.ts";
 
 interface Props {
@@ -19,12 +19,13 @@ interface Props {
   onDrill: (patch: Partial<Filters>) => void;
   showImages?: boolean;
   onFavorite?: (s: Spot) => void;
+  onVisited?: (s: Spot) => void;
 }
 
 const bySpecial = (a: Spot, b: Spot) => (b.specialness ?? 0) - (a.specialness ?? 0) || b.created_at.localeCompare(a.created_at);
 
 /** The home-city dashboard: the best saved food, drinks and things to do, grouped. */
-export function HomeView({ homeCity, spots, categories, selected, onOpen, onToggleSelect, onRetry, onDrill, showImages, onFavorite }: Props) {
+export function HomeView({ homeCity, spots, categories, selected, onOpen, onToggleSelect, onRetry, onDrill, showImages, onFavorite, onVisited }: Props) {
   const catById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const today = new Date().toISOString().slice(0, 10);
   const ready = spots.filter((s) => !isProcessing(s));
@@ -37,7 +38,7 @@ export function HomeView({ homeCity, spots, categories, selected, onOpen, onTogg
   const food = ready.filter((s) => tpl(s) === "food" && s.kind !== "food");
   const sections: { title: string; emoji: string; items: Spot[]; drill: Partial<Filters> }[] = [
     { title: "Restaurants", emoji: "🍽️", items: food.filter((s) => !venue(s, "cafe", "bakery", "bar", "wine_bar", "pub", "ice_cream") || venue(s, "restaurant", "fine_dining", "street_food")).sort(bySpecial), drill: { category: "food", venues: ["restaurant", "fine_dining", "street_food", "market"] } },
-    { title: "Cafés, bakeries & sweets", emoji: "☕", items: food.filter((s) => venue(s, "cafe", "bakery", "ice_cream")).sort(bySpecial), drill: { category: "food", venues: ["cafe", "bakery", "ice_cream"] } },
+    { title: "Cafés, bakeries & sweets", emoji: "☕", items: food.filter((s) => venue(s, "cafe", "bakery", "ice_cream")).sort(bySpecial), drill: { category: "cafes" } },
     { title: "Bars & drinks", emoji: "🍸", items: food.filter((s) => venue(s, "bar", "wine_bar", "pub") || s.drinks.some((d) => ["cocktails", "natural_wine", "craft_beer"].includes(d))).sort(bySpecial), drill: { category: "drinks" } },
     { title: "Things to do", emoji: "🗺️", items: ready.filter((s) => tpl(s) === "place" && s.category !== "events").sort(bySpecial), drill: { category: "places" } },
     { title: "Shops", emoji: "🛍️", items: ready.filter((s) => s.category === "shopping").sort(bySpecial), drill: { category: "shopping" } },
@@ -60,6 +61,7 @@ export function HomeView({ homeCity, spots, categories, selected, onOpen, onTogg
           onToggleSelect={(shift) => onToggleSelect(s.id, shift)}
           showImage={showImages}
           onFavorite={onFavorite ? () => onFavorite(s) : undefined}
+          onVisited={onVisited ? () => onVisited(s) : undefined}
         />
       ))}
     </div>
@@ -98,7 +100,7 @@ export function HomeView({ homeCity, spots, categories, selected, onOpen, onTogg
       {allUpcoming.length > 0 && (
         <section>
           <Header emoji="📅" title="Coming up" count={upcoming.length} />
-          <DateFilterBar value={dates} onChange={setDates} className="mb-3" />
+          <DateSelect value={dates} onChange={setDates} className="mb-3" />
           {!upcoming.length && <p className="text-sm text-muted">Nothing on those dates.</p>}
           <div className="flex gap-3 overflow-x-auto pb-2">
             {upcoming.slice(0, 12).map((s) => (

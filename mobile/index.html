@@ -155,7 +155,7 @@ let DATA = null;
 const S = { tab: "library", cat: "all", topic: "all", view: "list", near: null, mapStyle: localStorage.getItem("spotdrop.mapstyle") || "detailed" };
 try { Object.assign(S, JSON.parse(sessionStorage.getItem("spotdrop.view") || "{}")); } catch {}
 const remember = () => { try { sessionStorage.setItem("spotdrop.view", JSON.stringify({ tab: S.tab, cat: S.cat, topic: S.topic, view: S.view })); } catch {} };
-const F = { venues: [], meals: [], cuisines: [], drinks: [], service: [], areas: [], types: [], tags: [], genres: [], minRating: 0 };
+const F = { venues: [], meals: [], cuisines: [], drinks: [], service: [], areas: [], types: [], tags: [], genres: [], minRating: 0, visited: "all" };
 let D = { preset: "any" }; // date filter for Upcoming / Discover
 
 // Date filter (copy of shared/dates.ts)
@@ -280,7 +280,7 @@ function matches(s, q) {
   return norm(q).split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
 }
 const anyOf = (sel, vals) => !sel.length || sel.some((x) => (vals || []).includes(x));
-const activeFilters = () => F.genres.length + F.venues.length + F.meals.length + F.cuisines.length + F.drinks.length + F.service.length + F.areas.length + F.types.length + F.tags.length + (F.minRating ? 1 : 0);
+const activeFilters = () => (F.visited !== "all" ? 1 : 0) + F.genres.length + F.venues.length + F.meals.length + F.cuisines.length + F.drinks.length + F.service.length + F.areas.length + F.types.length + F.tags.length + (F.minRating ? 1 : 0);
 
 /** Items for the current tab + category (before sub-filters): used to offer only filters that exist. */
 function scope() {
@@ -299,7 +299,7 @@ function filtered() {
   let list = scope().filter((s) =>
     matches(s, q) && anyOf(F.venues, s.venues) && anyOf(F.meals, s.meals) && anyOf(F.cuisines, (s.cuisines || []).map(norm)) &&
     anyOf(F.drinks, s.drinks) && anyOf(F.service, s.service) && (!F.areas.length || F.areas.includes(s.neighborhood)) &&
-    (!F.types.length || F.types.includes(norm(s.type))) && anyOf(F.tags, (s.tags || []).map(norm)) && (s.rating || 0) >= F.minRating &&
+    (!F.types.length || F.types.includes(norm(s.type))) && anyOf(F.tags, (s.tags || []).map(norm)) && (s.rating || 0) >= F.minRating && (F.visited === "all" || (F.visited === "yes") === Boolean(s.visited)) &&
     (S.tab !== "upcoming" || inDates(s)));
   if (S.near) list = list.filter((s) => s.lat).sort((a, b) => km(S.near, a) - km(S.near, b));
   else if (S.tab === "upcoming") list.sort((a, b) => a.date_start.localeCompare(b.date_start));
@@ -336,6 +336,7 @@ function itemHtml(s) {
     st ? `<span class="${st.open ? "open" : ""}">${st.text}</span>` : "",
     located(s) && s.price != null ? `<span class="price">${PRICE[s.price]}</span>` : "",
     S.near && s.lat ? `<span>${fmtKm(km(S.near, s))}</span>` : "",
+    s.visited ? `<span class="open">✓ been there</span>` : "",
   ].filter(Boolean).join("");
   return `<button class="item" data-id="${s.id}">${thumb}<span style="flex:1;min-width:0"><div style="display:flex;align-items:baseline;gap:6px"><span class="name">${esc(s.name)}</span><span class="flames">${flames(s.rating)}</span></div>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}${s.date_start ? `<div class="date">${fmtDate(s)}</div>` : ""}${meta ? `<div class="meta">${meta}</div>` : ""}${mini ? `<div class="mini">${mini}</div>` : ""}</span></button>`;
 }
@@ -394,6 +395,7 @@ function openFilters() {
       html += group("Sit down or to go", "service", countBy(list, (s) => s.service), SERVICE);
     }
     if (tpl !== "food" && tpl !== "all") html += group("Topics", "tags", countBy(list, (s) => (s.tags || []).map(norm)).slice(0, 30));
+    html += `<div class="label">Been there</div><div class="wrap">${[["all", "All"], ["yes", "✓ Been there"], ["no", "Not yet"]].map(([v, l]) => `<button class="chip small ${F.visited === v ? "accent" : ""}" data-visited="${v}">${l}</button>`).join("")}</div>`;
     html += `<div class="label">Rating</div><div class="wrap">${[0, 2, 3, 4, 5].map((r) => `<button class="chip small ${F.minRating === r ? "accent" : ""}" data-rating="${r}">${r ? "🔥".repeat(r) + (r < 5 ? "+" : "") : "Any"}</button>`).join("")}</div>`;
   }
   if (S.tab === "discover") html += group("Sound", "genres", countBy(list.filter((d) => d.topic === "music"), (d) => d.genres), DATA.genres);
@@ -565,7 +567,7 @@ function openDiscover(d) {
 }
 
 // ---------- events ----------
-const resetFilters = () => { for (const k of Object.keys(F)) F[k] = Array.isArray(F[k]) ? [] : 0; };
+const resetFilters = () => { for (const k of Object.keys(F)) F[k] = Array.isArray(F[k]) ? [] : 0; F.visited = "all"; };
 document.addEventListener("click", (e) => {
   const t = e.target.closest("button, #sheet");
   if (!t) return;
@@ -579,6 +581,7 @@ document.addEventListener("click", (e) => {
   if (t.dataset.cat) { S.cat = t.dataset.cat; resetFilters(); return render(); }
   if (t.dataset.topic) { S.topic = t.dataset.topic; return render(); }
   if (t.dataset.f) { const a = F[t.dataset.f], v = t.dataset.v; const i = a.indexOf(v); i >= 0 ? a.splice(i, 1) : a.push(v); render(); return openFilters(); }
+  if (t.dataset.visited) { F.visited = t.dataset.visited; render(); return openFilters(); }
   if (t.dataset.rating) { F.minRating = +t.dataset.rating; render(); return openFilters(); }
   if (t.dataset.clear) { resetFilters(); render(); return openFilters(); }
   if (t.dataset.date) { D = { preset: t.dataset.date }; $("#sheet").classList.add("hidden"); window.scrollTo(0, 0); return render(); }

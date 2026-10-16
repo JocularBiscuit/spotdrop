@@ -3,12 +3,26 @@ import { Bookmark, Check, ChevronDown, ExternalLink, Loader2, MapPin, RefreshCw,
 import { api, type Category, type DiscoverData, type DiscoverItem, type FindQuery, type Spot } from "../api.ts";
 import { PlaceFinder } from "./PlaceFinder.tsx";
 import { formatDateRange } from "./CalendarView.tsx";
-import { Button, cx, inputCls, TagInput } from "./ui.tsx";
-import { DateFilterBar } from "./DateFilterBar.tsx";
+import { Button, cx, inputCls, Select, TagInput } from "./ui.tsx";
+import { DateSelect } from "./DateFilterBar.tsx";
 import { ANY_DATE, inDateFilter, type DateFilter } from "../../../shared/dates.ts";
 
 
 type Tab = "feed" | "techno" | "find";
+type Show = "all" | "liked" | "saved";
+
+function ShowSelect({ value, onChange }: { value: Show; onChange: (v: Show) => void }) {
+  return (
+    <Select
+      value={value}
+      onChange={(v) => onChange(v as Show)}
+      options={[{ value: "all", label: "All finds" }, { value: "liked", label: "👍 Liked" }, { value: "saved", label: "🔖 Saved" }]}
+      className="w-32"
+      buttonClassName="py-1 text-[13px] font-medium"
+      ariaLabel="Show"
+    />
+  );
+}
 
 export function DiscoverView({ toast, onSaved, onOpenSettings, aiOn, categories, spots }: { toast: (m: string) => void; onSaved: () => void; onOpenSettings: () => void; aiOn: boolean; categories: Category[]; spots: Spot[] }) {
   const [data, setData] = useState<DiscoverData | null>(null);
@@ -18,6 +32,7 @@ export function DiscoverView({ toast, onSaved, onOpenSettings, aiOn, categories,
   const [topic, setTopic] = useState("all");
   const [dates, setDates] = useState<DateFilter>(ANY_DATE);
   const [placesOnly, setPlacesOnly] = useState(false);
+  const [show, setShow] = useState<Show>("all");
   const [showTaste, setShowTaste] = useState(false);
   const [prefs, setPrefs] = useState("");
 
@@ -43,13 +58,15 @@ export function DiscoverView({ toast, onSaved, onOpenSettings, aiOn, categories,
   const items = useMemo(() => {
     const all = data?.items ?? [];
     return all.filter((i) => {
+      if (show === "liked" && i.status !== "liked") return false;
+      if (show === "saved" && i.status !== "saved") return false;
       if (tab === "techno") return i.topic === "music" && inDateFilter(i, dates) && (!genres.length || genres.some((g) => i.genres?.includes(g)));
       if (i.topic === "music") return false; // lives in the Techno tab
       if (topic !== "all" && i.topic !== topic) return false;
       if (placesOnly) return !i.date_start;
       return inDateFilter(i, dates);
     });
-  }, [data, topic, dates, placesOnly, tab, genres]);
+  }, [data, topic, dates, placesOnly, tab, genres, show]);
 
   const genreCounts = useMemo(() => {
     const m = new Map<string, number>();
@@ -109,22 +126,27 @@ export function DiscoverView({ toast, onSaved, onOpenSettings, aiOn, categories,
   const tasteChips = [...(taste.categories ?? []), ...(taste.cuisines ?? []).slice(0, 6), ...(taste.areas ?? []).slice(0, 4), ...(taste.types ?? []).slice(0, 6)];
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 pb-24">
-      {/* Header */}
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-[16rem] flex-1">
-          <h1 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">🔭 Discover</h1>
-          <p className="mt-0.5 text-sm text-muted">
-            New things in Munich from the web, picked for your taste. Separate from your library: save what you like.
-            {state.finished_at && !state.running && <> · Last refresh {new Date(state.finished_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</>}
-          </p>
+    <div className="mx-auto w-full max-w-7xl space-y-4 pb-24">
+      {/* Header: title, tabs and actions in one row */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h1
+          className="font-display text-xl font-semibold tracking-tight md:text-2xl"
+          title={`New things from the web, picked for your taste. Separate from your library: save what you like.${state.finished_at ? ` Last refresh ${new Date(state.finished_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}.` : ""}`}
+        >
+          🔭 Discover
+        </h1>
+        <div className="flex rounded-xl border border-line bg-card p-0.5 text-sm">
+          {([["feed", "✨ Feed"], ["techno", "🎧 Techno"], ["find", "🔎 Find places"]] as const).map(([k, label]) => (
+            <button key={k} onClick={() => setTab(k)} className={cx("rounded-lg px-2.5 py-1 font-medium transition", tab === k ? "bg-ink text-paper" : "text-muted hover:text-ink")}>{label}</button>
+          ))}
         </div>
-        <Button onClick={() => setShowTaste(!showTaste)}>
+        <span className="flex-1" />
+        <Button onClick={() => setShowTaste(!showTaste)} className="py-1.5">
           Your taste <ChevronDown size={14} className={cx("transition", showTaste && "rotate-180")} />
         </Button>
         {aiOn ? (
           tab !== "find" && (
-            <Button variant="primary" onClick={() => refresh(tab === "techno" ? "techno" : undefined)} disabled={state.running}>
+            <Button variant="primary" className="py-1.5" onClick={() => refresh(tab === "techno" ? "techno" : undefined)} disabled={state.running}>
               {state.running ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} {state.running ? "Looking…" : tab === "techno" ? "Refresh techno" : "Refresh all"}
             </Button>
           )
@@ -174,12 +196,6 @@ export function DiscoverView({ toast, onSaved, onOpenSettings, aiOn, categories,
         </div>
       )}
 
-      <div className="flex w-fit rounded-xl border border-line bg-card p-0.5 text-sm">
-        {([["feed", "✨ Feed"], ["techno", "🎧 Techno"], ["find", "🔎 Find places"]] as const).map(([k, label]) => (
-          <button key={k} onClick={() => setTab(k)} className={cx("rounded-lg px-3 py-1.5 font-medium transition", tab === k ? "bg-ink text-paper" : "text-muted hover:text-ink")}>{label}</button>
-        ))}
-      </div>
-
       {tab === "find" ? (
         <PlaceFinder
           categories={categories}
@@ -192,6 +208,8 @@ export function DiscoverView({ toast, onSaved, onOpenSettings, aiOn, categories,
         />
       ) : tab === "techno" ? (
         <TechnoTab
+          show={show}
+          setShow={setShow}
           items={items}
           allCount={data.items.filter((i) => i.topic === "music").length}
           dates={dates}
@@ -204,20 +222,26 @@ export function DiscoverView({ toast, onSaved, onOpenSettings, aiOn, categories,
           renderCard={(i) => <Card key={i.id} item={i} topics={topics} genreNames={data.genres} onStatus={setStatus} onSave={save} />}
         />
       ) : (<>
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <DateFilterBar value={dates} onChange={(f) => { setDates(f); setPlacesOnly(false); }} className="w-full" />
-        <button onClick={() => { setPlacesOnly(!placesOnly); setDates(ANY_DATE); }} className={cx("rounded-full border px-3 py-1 text-xs font-medium", placesOnly ? "border-ink bg-ink text-paper" : "border-line bg-card hover:border-accent")}>📍 Places only</button>
-        <div className="flex flex-wrap gap-1.5">
-          <button onClick={() => setTopic("all")} className={cx("rounded-full border px-3 py-1 text-xs font-medium", topic === "all" ? "border-ink bg-ink text-paper" : "border-line bg-card hover:border-accent")}>
-            Everything <span className="opacity-60">{data.items.filter((i) => i.topic !== "music").length}</span>
-          </button>
-          {Object.entries(topics).filter(([k]) => counts.get(k)).map(([k, t]) => (
-            <button key={k} onClick={() => setTopic(topic === k ? "all" : k)} className={cx("rounded-full border px-3 py-1 text-xs font-medium", topic === k ? "border-ink bg-ink text-paper" : "border-line bg-card hover:border-accent")}>
-              {t.emoji} {t.label} <span className="opacity-60">{counts.get(k)}</span>
-            </button>
-          ))}
-        </div>
+      {/* Filters: one compact row */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Select
+          value={topic}
+          onChange={setTopic}
+          options={[
+            { value: "all", label: `Everything · ${data.items.filter((i) => i.topic !== "music").length}` },
+            ...Object.entries(topics).filter(([k]) => counts.get(k)).map(([k, t]) => ({ value: k, label: `${t.emoji} ${t.label} · ${counts.get(k)}` })),
+          ]}
+          className="w-52"
+          buttonClassName="py-1 text-[13px] font-medium"
+          ariaLabel="Topic"
+        />
+        <DateSelect
+          value={dates}
+          onChange={(f) => { setDates(f); setPlacesOnly(false); }}
+          extra={{ key: "places", label: "📍 Places, no date", active: placesOnly, onPick: () => { setPlacesOnly(true); setDates(ANY_DATE); } }}
+        />
+        <ShowSelect value={show} onChange={setShow} />
+        <span className="ml-1 text-xs text-muted">{items.length} finds</span>
       </div>
 
       {!data.items.length && !state.running && (
@@ -249,26 +273,29 @@ export function DiscoverView({ toast, onSaved, onOpenSettings, aiOn, categories,
 }
 
 /** 🎧 Techno: club nights, hard sounds and small collectives, filtered by date and sub-genre. */
-function TechnoTab({ items, allCount, dates, setDates, genres, setGenres, genreNames, genreCounts, running, renderCard }: {
-  items: DiscoverItem[]; allCount: number; dates: DateFilter; setDates: (f: DateFilter) => void;
+function TechnoTab({ show, setShow, items, allCount, dates, setDates, genres, setGenres, genreNames, genreCounts, running, renderCard }: {
+  show: Show; setShow: (v: Show) => void; items: DiscoverItem[]; allCount: number; dates: DateFilter; setDates: (f: DateFilter) => void;
   genres: string[]; setGenres: (g: string[]) => void; genreNames: Record<string, string>; genreCounts: Map<string, number>;
   running: boolean; renderCard: (i: DiscoverItem) => React.ReactNode;
 }) {
   const sorted = [...items].sort((a, b) => (a.date_start ?? "9").localeCompare(b.date_start ?? "9"));
   return (
     <div className="space-y-4">
-      <DateFilterBar value={dates} onChange={setDates} />
-      <div className="flex flex-wrap gap-1.5">
-        <button onClick={() => setGenres([])} className={cx("rounded-full border px-3 py-1 text-xs font-medium", !genres.length ? "border-ink bg-ink text-paper" : "border-line bg-card hover:border-accent")}>All sounds</button>
-        {Object.entries(genreNames).map(([k, label]) => {
-          const n = genreCounts.get(k) ?? 0;
-          const on = genres.includes(k);
-          return (
-            <button key={k} onClick={() => setGenres(on ? genres.filter((g) => g !== k) : [...genres, k])} className={cx("rounded-full border px-3 py-1 text-xs font-medium transition", on ? "border-accent bg-accent text-white" : "border-line bg-card hover:border-accent", !n && !on && "opacity-40")}>
-              {label} {n > 0 && <span className="opacity-60">{n}</span>}
-            </button>
-          );
-        })}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Select
+          value={genres[0] ?? "all"}
+          onChange={(v) => setGenres(v === "all" ? [] : [v])}
+          options={[
+            { value: "all", label: "🎧 All sounds" },
+            ...Object.entries(genreNames).filter(([k]) => genreCounts.get(k)).map(([k, label]) => ({ value: k, label: `${label} · ${genreCounts.get(k)}` })),
+          ]}
+          className="w-52"
+          buttonClassName="py-1 text-[13px] font-medium"
+          ariaLabel="Sound"
+        />
+        <DateSelect value={dates} onChange={setDates} />
+        <ShowSelect value={show} onChange={setShow} />
+        <span className="ml-1 text-xs text-muted">{sorted.length} parties</span>
       </div>
       {!allCount && !running && (
         <div className="rounded-3xl border-2 border-dashed border-line px-6 py-14 text-center">
@@ -302,7 +329,9 @@ function Card({ item, topics, genreNames, onStatus, onSave }: {
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-base">{t?.emoji ?? "✨"}</span>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-accent">{t?.label ?? item.topic}{item.kind === "popup" ? " · pop-up" : ""}</p>
-          <h3 className="font-display text-[15px] font-semibold leading-snug line-clamp-2">{item.title}</h3>
+          <h3 className="font-display text-[15px] font-semibold leading-snug line-clamp-2">
+            {item.url ? <a href={item.url} target="_blank" rel="noreferrer" className="hover:text-accent hover:underline">{item.title}</a> : item.title}
+          </h3>
         </div>
         <button onClick={() => onStatus(item, "hidden")} className="rounded-full p-1 text-muted opacity-0 transition hover:text-ink group-hover:opacity-100" aria-label="Hide" title="Hide">
           <X size={15} />

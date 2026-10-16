@@ -123,6 +123,22 @@ if (!hadCategory) {
   );
   BUILTIN_CATEGORIES.forEach((c, i) => upsert.run(c.id, c.name, c.emoji, c.color, c.template, c.description, i, ts));
 }
+if (!getMeta("split_cafes")) {
+  // "Food" split again: pure cafés, bakeries and ice cream places get their own category, once.
+  const food = BUILTIN_CATEGORIES.find((c) => c.id === "food")!;
+  db.prepare("UPDATE categories SET description = ? WHERE id = 'food' AND name = 'Food'").run(food.description);
+  const CAFE = ["cafe", "bakery", "ice_cream"];
+  const rows = db.prepare("SELECT id, venue_types FROM spots WHERE category = 'food' AND kind != 'food'").all() as { id: string; venue_types: string }[];
+  const move = db.prepare("UPDATE spots SET category = 'cafes' WHERE id = ?");
+  let moved = 0;
+  for (const r of rows) {
+    let v: string[] = [];
+    try { v = JSON.parse(r.venue_types || "[]"); } catch { /* ignore */ }
+    if (v.length && v.every((x) => CAFE.includes(x))) { move.run(r.id); moved++; }
+  }
+  setMeta("split_cafes", "1");
+  if (moved) console.log(`[db] moved ${moved} café(s) to Cafés & Bakeries`);
+}
 if (!getMeta("split_drinks")) {
   // "Food & Drink" became "Food" + "Bars & Drinks": move pure bars (no kitchen-type venue) over, once.
   const food = BUILTIN_CATEGORIES.find((c) => c.id === "food")!;

@@ -11,7 +11,10 @@ const w = (words: string) => new RegExp(`(?:^|[^\\p{L}])(?:${words})(?=$|[^\\p{L
 // Category signals (English + German, since many local posts are German).
 const CATEGORY_SIGNALS: Record<string, RegExp[]> = {
   food: [
-    w("restaurant|restaurante|ristorante|trattoria|osteria|pizzeria|bistro|brasserie|café|cafe|caffè|coffee|kaffee|bakery|bäckerei|konditorei|brunch|breakfast|frühstück|lunch|mittag|dinner|abendessen|menu|speisekarte|foodie|food|essen|eat|eats|delicious|lecker|yummy|tasty|pizza|burger|ramen|sushi|tacos?|pasta|kebab|döner|croissant|gelato|eis|dessert|kuchen|street ?food|food ?truck|reservation|reservierung|michelin|chef|küche|kitchen|imbiss|gaststätte|wirtshaus|schmankerl"),
+    w("restaurant|restaurante|ristorante|trattoria|osteria|pizzeria|bistro|brasserie|brunch|breakfast|frühstück|lunch|mittag|dinner|abendessen|menu|speisekarte|foodie|food|essen|eat|eats|delicious|lecker|yummy|tasty|pizza|burger|ramen|sushi|tacos?|pasta|kebab|döner|street ?food|food ?truck|reservation|reservierung|michelin|chef|küche|kitchen|imbiss|gaststätte|wirtshaus|schmankerl"),
+  ],
+  cafes: [
+    w("café|cafe|caffè|coffee|kaffee|espresso|flat white|cappuccino|matcha|bakery|bäckerei|backstube|konditorei|patisserie|pâtisserie|croissant|zimtschnecke|cinnamon roll|kuchen|cake|torte|gelato|eis|eisdiele|ice cream|dessert"),
   ],
   drinks: [
     w("bar|cocktails?|cocktailbar|drinks|wine bar|weinbar|natural wine|naturwein|beer|bier|biergarten|brauhaus|brewery|brauerei|pub|kneipe|taproom|spritz|aperitivo|gin|whisky|negroni|martini|happy hour|club|rooftop"),

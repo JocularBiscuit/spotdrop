@@ -399,6 +399,11 @@ export default function App() {
     api.update(s.id, { favorite: !s.favorite }).catch((e) => toast((e as Error).message));
   };
 
+  const toggleVisited = (s: Spot) => {
+    setSpots((all) => all.map((x) => (x.id === s.id ? { ...x, visited: !s.visited } : x)));
+    api.update(s.id, { visited: !s.visited }).catch((e) => toast((e as Error).message));
+  };
+
   const onChanged = (s?: Spot) => {
     if (s) setSpots((all) => all.map((x) => (x.id === s.id ? s : x)));
     refresh();
@@ -688,6 +693,7 @@ export default function App() {
               onDrill={(patch) => setFilters({ ...clearRefinements({ ...filters, category: "all", collection: "" }), ...patch })}
               showImages={showImages}
               onFavorite={toggleFavorite}
+              onVisited={toggleVisited}
             />
           ) : libView === "shots" && (section === "library" || section === "munich") ? (
             <ScreenshotGallery shots={groupScreenshots(visible)} categories={categories} onOpenItem={setOpenId} />
@@ -713,6 +719,7 @@ export default function App() {
                   showImage={showImages}
                   note={filters.reviewOnly && section === "library" ? reviewReason(s, nameById) : undefined}
                   onFavorite={() => toggleFavorite(s)}
+                  onVisited={() => toggleVisited(s)}
                 />
               ))}
             </div>
@@ -733,6 +740,7 @@ export default function App() {
                   showImage={showImages}
                   note={filters.reviewOnly && section === "library" ? reviewReason(s, nameById) : undefined}
                   onFavorite={() => toggleFavorite(s)}
+                  onVisited={() => toggleVisited(s)}
                 />
               ))}
             </div>
